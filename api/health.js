@@ -1,0 +1,7 @@
+module.exports = async function handler(req, res) {
+  res.status(200).json({
+    ok: true,
+    service: "business-assistant-whatsapp",
+    timestamp: new Date().toISOString()
+  });
+};
