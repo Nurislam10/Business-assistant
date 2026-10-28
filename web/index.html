@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="kk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Business Assistant OS</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">BA<span>OS</span></div>
+      <div class="owner">Business Assistant</div>
+      <nav id="nav">
+        <button data-view="day" class="active">Бүгін</button>
+        <button data-view="tasks">Тапсырмалар</button>
+        <button data-view="projects">Проекттер</button>
+        <button data-view="team">Команда</button>
+        <button data-view="decisions">Шешімдер</button>
+        <button data-view="inbox">Inbox</button>
+      </nav>
+      <div class="sidebar-note">MVP 0.1<br/>WhatsApp — келесі этап</div>
+    </aside>
+
+    <main>
+      <header>
+        <div>
+          <h1 id="title">Бүгін</h1>
+          <p id="subtitle">Назар аудару керек нәрселердің қысқа көрінісі.</p>
+        </div>
+        <button id="quickAdd" class="primary">+ Қосу</button>
+      </header>
+
+      <section id="view"></section>
+    </main>
+  </div>
+
+  <dialog id="modal">
+    <form method="dialog" id="modalForm">
+      <div class="modal-head">
+        <h2 id="modalTitle">Қосу</h2>
+        <button value="cancel" class="icon">×</button>
+      </div>
+      <div id="modalBody"></div>
+      <div class="modal-actions">
+        <button value="cancel">Болдырмау</button>
+        <button id="saveBtn" value="default" class="primary">Сақтау</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
