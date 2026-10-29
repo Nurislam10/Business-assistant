@@ -1,73 +1,19 @@
--- PostgreSQL direction for production MVP
-CREATE TABLE users (
-  id uuid PRIMARY KEY,
-  name text NOT NULL,
-  email text UNIQUE,
-  role text NOT NULL CHECK (role IN ('OWNER','MANAGER','MEMBER')),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE TABLE IF NOT EXISTS users (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, email text UNIQUE, role text NOT NULL CHECK (role IN ('OWNER','MANAGER','MEMBER')), created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS projects (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, status text NOT NULL DEFAULT 'ACTIVE', owner_id uuid REFERENCES users(id), created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS tasks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text NOT NULL, description text, status text NOT NULL DEFAULT 'NEW', priority text NOT NULL DEFAULT 'MEDIUM', assignee_id uuid REFERENCES users(id), project_id uuid REFERENCES projects(id), due_at timestamptz, created_by uuid REFERENCES users(id), created_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz);
+CREATE TABLE IF NOT EXISTS decisions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text NOT NULL, context text, status text NOT NULL DEFAULT 'OPEN', owner_id uuid REFERENCES users(id), project_id uuid REFERENCES projects(id), due_at timestamptz, decision_text text, decided_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 
-CREATE TABLE projects (
-  id uuid PRIMARY KEY,
-  name text NOT NULL,
-  status text NOT NULL DEFAULT 'ACTIVE',
-  owner_id uuid REFERENCES users(id),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+-- Team-only notes. Never store WhatsApp messages here.
+CREATE TABLE IF NOT EXISTS internal_comments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), entity_type text NOT NULL, entity_id uuid NOT NULL, author_id uuid REFERENCES users(id), body text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
 
-CREATE TABLE tasks (
-  id uuid PRIMARY KEY,
-  title text NOT NULL,
-  description text,
-  status text NOT NULL DEFAULT 'NEW',
-  priority text NOT NULL DEFAULT 'MEDIUM',
-  assignee_id uuid REFERENCES users(id),
-  project_id uuid REFERENCES projects(id),
-  due_at timestamptz,
-  created_by uuid REFERENCES users(id),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  completed_at timestamptz
-);
+CREATE TABLE IF NOT EXISTS whatsapp_contacts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), wa_id text NOT NULL UNIQUE, phone_number text, display_name text, profile_name text, last_seen_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS whatsapp_threads (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), contact_id uuid NOT NULL REFERENCES whatsapp_contacts(id), phone_number_id text NOT NULL, external_thread_id text NOT NULL, unread_count integer NOT NULL DEFAULT 0 CHECK (unread_count >= 0), last_message_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE (phone_number_id, external_thread_id));
+CREATE TABLE IF NOT EXISTS whatsapp_messages (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), thread_id uuid NOT NULL REFERENCES whatsapp_threads(id) ON DELETE CASCADE, whatsapp_message_id text NOT NULL UNIQUE, direction text NOT NULL CHECK (direction IN ('INBOUND','OUTBOUND')), message_type text NOT NULL, text_body text, content jsonb NOT NULL DEFAULT '{}'::jsonb, raw_payload jsonb NOT NULL DEFAULT '{}'::jsonb, latest_status text, occurred_at timestamptz NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS whatsapp_message_statuses (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), whatsapp_message_id text NOT NULL, status text NOT NULL, recipient_id text, conversation jsonb, pricing jsonb, errors jsonb, raw_payload jsonb NOT NULL DEFAULT '{}'::jsonb, occurred_at timestamptz NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE (whatsapp_message_id, status, occurred_at));
+CREATE TABLE IF NOT EXISTS webhook_events (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), event_key text NOT NULL UNIQUE, source text NOT NULL, payload jsonb NOT NULL, processing_status text NOT NULL, message_count integer NOT NULL DEFAULT 0, status_count integer NOT NULL DEFAULT 0, error_message text, received_at timestamptz NOT NULL DEFAULT now(), processed_at timestamptz);
 
-CREATE TABLE decisions (
-  id uuid PRIMARY KEY,
-  title text NOT NULL,
-  context text,
-  status text NOT NULL DEFAULT 'OPEN',
-  owner_id uuid REFERENCES users(id),
-  project_id uuid REFERENCES projects(id),
-  due_at timestamptz,
-  decision_text text,
-  decided_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE internal_comments (
-  id uuid PRIMARY KEY,
-  entity_type text NOT NULL,
-  entity_id uuid NOT NULL,
-  author_id uuid REFERENCES users(id),
-  body text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE inbox_threads (
-  id uuid PRIMARY KEY,
-  channel text NOT NULL,
-  external_thread_id text NOT NULL,
-  display_name text,
-  assigned_to uuid REFERENCES users(id),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(channel, external_thread_id)
-);
-
-CREATE TABLE external_messages (
-  id uuid PRIMARY KEY,
-  thread_id uuid NOT NULL REFERENCES inbox_threads(id),
-  external_message_id text NOT NULL UNIQUE,
-  direction text NOT NULL CHECK (direction IN ('INBOUND','OUTBOUND')),
-  message_type text NOT NULL,
-  body text,
-  sent_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_threads_last_message ON whatsapp_threads(last_message_at DESC);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_thread_time ON whatsapp_messages(thread_id, occurred_at);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_statuses_message ON whatsapp_message_statuses(whatsapp_message_id, occurred_at);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_received ON webhook_events(received_at DESC);

@@ -1,10 +1,15 @@
 {
   "name": "business-assistant",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Business Assistant OS with WhatsApp Coexistence webhook backend",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test",
+    "db:schema": "node scripts/apply-schema.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
   },
   "engines": {
     "node": ">=20"
