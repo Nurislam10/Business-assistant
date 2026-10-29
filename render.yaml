@@ -21,3 +21,5 @@ services:
         sync: false
       - key: WHATSAPP_BUSINESS_ACCOUNT_ID
         sync: false
+      - key: DATABASE_URL
+        sync: false

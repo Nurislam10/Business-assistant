@@ -1,33 +1,48 @@
-# Business Assistant OS — MVP 0.1
+# Business Assistant OS
 
-A lightweight, dependency-free prototype for a founder/CEO business assistant workspace.
-
-## What works now
-- My Day dashboard
-- Tasks: create, prioritize, assign, complete
-- Projects: create and track
-- Team: add members and roles
-- Decisions: capture decisions that need owner attention
-- Inbox placeholder for future WhatsApp Coexistence integration
-- Local persistence in the browser via `localStorage`
+Business Assistant with a production-ready Meta WhatsApp Business Platform / Cloud API backend prepared for WhatsApp Coexistence. The existing WhatsApp Business App number must be onboarded through Meta's Coexistence flow. No amoCRM, Wazzup, RadistOnline or n8n.
 
 ## Run
-Open `web/index.html` in a modern browser.
 
-For a local server:
 ```bash
-cd web
-python3 -m http.server 8080
+npm install
+npm start
 ```
-Then open `http://localhost:8080`.
 
-## Next production phase
-- Authentication and roles
-- PostgreSQL
-- API backend
-- OpenAI assistant layer
-- WhatsApp Business Platform Coexistence webhooks
-- Calendar/Drive integrations
-- Notifications and audit log
+The server uses `process.env.PORT` (default `10000`) and serves the static app from `web/`. GitHub Pages can still publish `web/` without backend secrets.
 
-See `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, and `docs/ROADMAP.md`.
+## Environment
+
+```text
+WHATSAPP_VERIFY_TOKEN
+META_APP_SECRET
+WHATSAPP_ACCESS_TOKEN
+WHATSAPP_PHONE_NUMBER_ID
+WHATSAPP_BUSINESS_ACCOUNT_ID
+DATABASE_URL
+```
+
+No environment value is exposed by the status endpoint or frontend. With no database, the server and `/api/health` keep running; inbox endpoints return `503 database_not_configured`.
+
+Apply PostgreSQL schema once:
+
+```bash
+npm run db:schema
+```
+
+## Endpoints
+
+- `GET /api/health`
+- `GET|POST /api/whatsapp/webhook`
+- `GET /api/whatsapp/status`
+- `GET /api/inbox/threads`
+- `GET /api/inbox/threads/:id/messages`
+- `POST /api/inbox/threads/:id/messages`
+
+Outbound supports text, replies (`replyTo`) and templates. Media metadata/download stays server-side in `src/whatsapp/media.js`.
+
+## Security and data boundaries
+
+Webhook POST requires valid `x-hub-signature-256`; missing `META_APP_SECRET` fails closed. `webhook_events.event_key` and `whatsapp_messages.whatsapp_message_id` enforce idempotency. `internal_comments` is for team-only notes and is never used for WhatsApp messages.
+
+Run tests with `npm test`. See [docs/WHATSAPP-COEXISTENCE.md](docs/WHATSAPP-COEXISTENCE.md) for the verified Meta/Render onboarding checklist.

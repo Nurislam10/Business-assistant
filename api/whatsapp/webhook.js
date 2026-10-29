@@ -17,7 +17,7 @@ function safeEqual(a, b) {
 
 function verifySignature(rawBody, signatureHeader) {
   const appSecret = process.env.META_APP_SECRET;
-  if (!appSecret) return true; // allow initial setup; require it before production use
+  if (!appSecret) return false;
   if (!signatureHeader?.startsWith("sha256=")) return false;
 
   const expected =
