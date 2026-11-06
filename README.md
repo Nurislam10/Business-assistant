@@ -24,7 +24,7 @@ DATABASE_URL
 
 No environment value is exposed by the status endpoint or frontend. With no database, the server and `/api/health` keep running; inbox endpoints return `503 database_not_configured`.
 
-Apply PostgreSQL schema once:
+PostgreSQL schema is applied idempotently at server startup when `DATABASE_URL` is configured. It can also be applied manually:
 
 ```bash
 npm run db:schema

@@ -48,9 +48,21 @@ function createServer() {
   });
 }
 
-if (require.main === module) {
+async function start() {
   const config = getConfig();
-  createServer().listen(config.port, "0.0.0.0", () => logger.info("server_started", { port: config.port }));
+  if (config.databaseUrl) {
+    try {
+      const schema = fs.readFileSync(path.join(__dirname, "db", "schema.sql"), "utf8");
+      await db.query(schema);
+      logger.info("database_schema_ready");
+    } catch (error) {
+      // Database availability must never prevent the health endpoint from starting.
+      logger.error("database_schema_error", { message: error.message });
+    }
+  }
+  return createServer().listen(config.port, "0.0.0.0", () => logger.info("server_started", { port: config.port }));
 }
 
-module.exports = { createServer };
+if (require.main === module) start();
+
+module.exports = { createServer, start };
